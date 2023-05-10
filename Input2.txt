@@ -1,0 +1,81 @@
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
+public class XMLJsonExcelParser {
+
+public static void main(String[] args) throws Exception {
+
+// Read inputs
+String xmlFile = args[0];
+String jsonFile = args[1];
+String excelFile = args[2];
+
+// Create a mapping from the Excel file
+Map, String> xpathMap = getXPathMap(excelFile);
+
+// Parse the XML file
+DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+DocumentBuilder builder = factory.newDocumentBuilder();
+InputStream is = new FileInputStream(new File(xmlFile));
+Document doc = builder.parse(is);
+
+// Extract the values using the mapping
+for (Entry, String> entry : xpathMap.entrySet()) {
+String xmlXPath = entry.getKey();
+String jsonXPath = entry.getValue();
+NodeList nodeList = doc.getElementsByTagName(xmlXPath);
+for (int i = 0; i < nodeList.getLength(); i++) {
+Element element = (Element) nodeList.item(i);
+System.out.println("XPath: " + xmlXPath + ", Value: " + element.getTextContent());
+// Print corresponding JSON value as well
+if (jsonXPath != null) {
+JSONParser parser = new JSONParser();
+JSONObject json = (JSONObject) parser.parse(new FileInputStream(new File(jsonFile)));
+String[] steps = jsonXPath.split("\\.");
+Object value = json;
+for (String step : steps) {
+if (value instanceof JSONObject) {
+value = ((JSONObject) value).get(step);
+} else {
+break;
+}
+}
+System.out.println("JSON XPath: " + jsonXPath + ", Value: " + value);
+}
+}
+}
+}
+
+private static Map, String> getXPathMap(String excelFile) throws Exception {
+XSSFWorkbook workbook = new XSSFWorkbook(new FileInputStream(new File(excelFile)));
+Sheet sheet = workbook.getSheetAt(0);
+Map, String> xpathMap = new HashMap, String>();
+Iterator<Row> rowIterator = sheet.iterator();
+while (rowIterator.hasNext()) {
+Row row = rowIterator.next();
+Cell cellXPath = row.getCell(0);
+Cell cellJsonXPath = row.getCell(1);
+String xpath = cellXPath.getStringCellValue();
+String jsonXpath = cellJsonXPath.getStringCellValue();
+xpathMap.put(xpath, jsonXpath);
+}
+workbook.close();
+return xpathMap;
+}
+}
