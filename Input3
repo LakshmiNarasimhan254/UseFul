@@ -1,0 +1,49 @@
+```java
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.*;
+
+public class ExcelSearchAndWrite {
+
+public static void main(String[] args) {
+String filePath = "path/to/excel/sheet.xlsx";
+String sheetName = "Sheet1";
+String searchValue = "value";
+String newText = "text";
+
+try {
+// Open the Excel file
+Workbook workbook = new XSSFWorkbook(filePath);
+
+// Get the sheet by name
+Sheet sheet = workbook.getSheet(sheetName);
+if (sheet == null) {
+System.out.println("Sheet not found.");
+return;
+}
+
+// Loop through all the rows
+for (Row row : sheet) {
+// Loop through all the cells in the row
+for (Cell cell : row) {
+// Check if the cell value matches the search value
+if (cell.getCellType() == CellType.STRING && cell.getStringCellValue().equals(searchValue)) {
+// Write the new text in the same row, 3 columns to the right
+Cell newTextCell = row.createCell(cell.getColumnIndex() + 3);
+newTextCell.setCellValue(newText);
+System.out.println("New text written in row " + (row.getRowNum() + 1) + ", column " + (newTextCell.getColumnIndex() + 1));
+break;
+}
+}
+}
+
+// Save the changes and close the workbook
+FileOutputStream outputStream = new FileOutputStream(filePath);
+workbook.write(outputStream);
+workbook.close();
+outputStream.close();
+} catch (Exception e) {
+e.printStackTrace();
+}
+}
+}
+```
